@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.idea
+
+# datasets
+data/*
+
+#data loader는 예외
+!data/loader.py
+
+# logs
+logs/*
+
+# model snapshots
+models/snapshot/*
