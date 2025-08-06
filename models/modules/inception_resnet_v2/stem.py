@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 
-from conv_block import ConvBlock
+from models.modules.conv_block import ConvBlock
 class Stem(nn.Module):
     def __init__(self):
         super().__init__()
