@@ -21,3 +21,7 @@ logs/*
 
 # model snapshots
 models/snapshot/*
+
+#vector database
+classification/vectors
+classification/submissions.csv
