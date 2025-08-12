@@ -28,14 +28,23 @@ valid_transform = transforms.Compose([
 
 path = Path(config.DATA_PATH)
 
-print(f"Dataset Path: {path}")
-print(path.is_absolute())
-
 
 train_dataset = ImageDataset(root=path, force_download=False, train=True, transform=resizer)
 valid_dataset = ImageDataset(root=path, force_download=False, valid=True, transform=valid_transform)
 test_dataset = ImageDataset(root=path, force_download=False, train=False, transform=resizer)
 unlabeled_dataset = ImageDataset(root=path, force_download=False, unlabeled=True, transform=resizer)
+
+def get_train_loader(batch_size=32, num_workers=4):
+    return DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+def get_valid_loader(batch_size=32, num_workers=4):
+    return DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
+def get_test_loader(batch_size=32, num_workers=4):
+    return DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
+def get_unlabeled_loader(batch_size=32, num_workers=4):
+    return DataLoader(unlabeled_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
 
 if __name__ == "__main__":

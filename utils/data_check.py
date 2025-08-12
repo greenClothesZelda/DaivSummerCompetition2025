@@ -1,4 +1,4 @@
-from data.loader import get_cifar100_loaders
+from data.loader import get_unlabeled_loader
 import matplotlib.pyplot as plt
 import numpy as np
 import torchvision
@@ -17,7 +17,7 @@ def imshow_grid(imgs, nrow=5):
     plt.show()
 
 def main():
-    _, test_loader = get_cifar100_loaders(batch_size=25, num_workers=0, root="../data")
+    test_loader = get_unlabeled_loader()
     x, y = next(iter(test_loader))
     imshow_grid(x, nrow=5)
 
