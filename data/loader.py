@@ -35,16 +35,16 @@ test_dataset = ImageDataset(root=path, force_download=False, train=False, transf
 unlabeled_dataset = ImageDataset(root=path, force_download=False, unlabeled=True, transform=resizer)
 
 def get_train_loader(batch_size=32, num_workers=4):
-    return DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    return DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
 def get_valid_loader(batch_size=32, num_workers=4):
-    return DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    return DataLoader(valid_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
 
 def get_test_loader(batch_size=32, num_workers=4):
-    return DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    return DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
 
 def get_unlabeled_loader(batch_size=32, num_workers=4):
-    return DataLoader(unlabeled_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    return DataLoader(unlabeled_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
 
 if __name__ == "__main__":

@@ -40,8 +40,8 @@ class InceptionA(nn.Module):
         return x
 
 if __name__ == "__main__":
-    in_channels = 384
+    in_channels = 192
     inception_a = InceptionA(scale=0.1, in_channels=in_channels)
-    x = torch.randn(1, in_channels, 35, 35)  # Batch size of 1, 384 channels, 35x35 feature map
+    x = torch.randn(1, in_channels, 16, 16)  # Batch size of 1, 384 channels, 35x35 feature map
     output = inception_a(x)
     print(output.shape)  # Should print the shape of the output tensor

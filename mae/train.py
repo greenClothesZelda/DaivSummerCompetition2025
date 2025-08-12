@@ -1,4 +1,3 @@
-
 from tqdm import tqdm
 from logger import get_logger
 logger = get_logger()

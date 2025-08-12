@@ -53,6 +53,6 @@ class Stem(nn.Module):
 
 if __name__ == "__main__":
     stem = Stem()
-    x = torch.randn(1, 3, 299, 299)  # Batch size of 1, 3 channels, 299x299 image
+    x = torch.randn(1, 3, 64, 64)  # Batch size of 1, 3 channels, 299x299 image
     output = stem(x)
     print(output.shape)  # Should print the shape of the output tensor

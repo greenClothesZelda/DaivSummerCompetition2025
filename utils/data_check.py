@@ -19,6 +19,7 @@ def imshow_grid(imgs, nrow=5):
 def main():
     test_loader = get_unlabeled_loader()
     x, y = next(iter(test_loader))
+    print(f"x shape: {x.shape}, y shape: {y.shape}")
     imshow_grid(x, nrow=5)
 
 if __name__ == "__main__":
