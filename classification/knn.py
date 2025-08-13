@@ -48,7 +48,7 @@ def knn_classify(k=5):
         for vector in vectors:
             train_vectors.append((vector, class_label))
 
-    loader = get_train_loader(batch_size=64, num_workers=1)
+    loader = get_test_loader(batch_size=64, num_workers=1)
     correct = 0
     total = 0
 
@@ -119,9 +119,34 @@ def compute_class_stats():
     print("\nOverall:")
     print(f"  Variance: {np.mean(total_var)}")
 
+
+def validate_csv(csv_file='submissions.csv'):
+    import csv
+
+    correct = 0
+    total = 0
+
+    with open(csv_file, 'r') as f:
+        reader = csv.reader(f)
+        next(reader)  # 헤더 건너뛰기
+
+        for row in reader:
+            if len(row) == 2:
+                id_val = row[0]
+                label_val = row[1]
+
+                if id_val == label_val:
+                    correct += 1
+                total += 1
+
+    accuracy = correct / total if total > 0 else 0
+    print(f"정확도 (id와 label이 일치하는 비율): {accuracy:.4f} ({correct}/{total})")
+    return accuracy
+
 if __name__ == "__main__":
     with torch.no_grad():
         #create_data_table()
         knn_classify(k=5)
         # compute_class_stats()
+        #validate_csv('submissions.csv')
 
