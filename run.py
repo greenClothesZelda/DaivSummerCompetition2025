@@ -1,50 +1,61 @@
-import torch
-import yaml
-from types import SimpleNamespace
-from torch.utils.data import ConcatDataset
-
-from data_aug.contrastive_learning_dataset import ContrastiveLearningDataset
 from models.resnet_simclr import ResNetSimCLR
-from simclr import SimCLR
+import torch
+from torchvision import transforms
+from logger import get_logger
+from config import *
+from data_aug.aug_loader import AugmentedImageDataset
+from data_aug.image_dataset import ImageDataset
+from torch.utils.data import DataLoader
+from train_pretext import train_pretext
+
+logger = get_logger()
+
+def get_aug_loader():
+    IMG_NORM = dict(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+    resizer = transforms.Compose([
+        transforms.Resize(IMG_SIZE),  # Resize Image
+        transforms.ToTensor(),  # Convert Image to Tensor
+        transforms.Normalize(**IMG_NORM)  # Normalization
+    ])
+
+    aug_transform = transforms.Compose([
+        transforms.RandomResizedCrop(64),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomApply([
+            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+        ], p=0.8),
+        transforms.RandomGrayscale(p=0.2),
+    ])
 
 
-def main():
-    with open('config.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-    config = SimpleNamespace(**config)
+    unlabeled_dataset = ImageDataset(root=DATA_PATH, force_download=False, unlabeled=True, transform=resizer)
+    unlabeled_loader = AugmentedImageDataset(unlabeled_dataset, transform=aug_transform)
 
-    if torch.cuda.is_available():
-        device = 'cuda'
-        torch.cuda.manual_seed_all(config.seed)
-    else:
-        device = 'cpu'
+    return DataLoader(unlabeled_loader, batch_size=BATCH_SIZE_PRETEXT, shuffle=True)
 
-    torch.manual_seed(config.seed)
+def main(device):
+    unlabeled_loader = get_aug_loader()
+    model = ResNetSimCLR(num_classes=NUM_CLASSES, latent_dim=LATENT_DIM)
+    model.to(device)
+    base_epoch = 0
+    try:
+        model.load_state_dict(torch.load(f"models/snapshot/cnn_AE_epoch_{BASE_EPOCH}.pth"))
+        logger.info("Pre-trained model loaded successfully.")
+        base_epoch = BASE_EPOCH
+    except FileNotFoundError:
+        logger.info("No pre-trained model found, starting from scratch.")
 
-    dataset = ContrastiveLearningDataset(config.data['root_folder'], config.data['force_download'])
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(unlabeled_loader),
+                                                           eta_min=0, last_epoch=-1)
+    train_pretext(model=model.backbone, loader=unlabeled_loader, optimizer=optimizer, scheduler=scheduler,
+                  device=device, base_epoch=base_epoch, total_epochs=EPOCHS_PRETEXT)
 
-    unlabeled_dataset = dataset.get_dataset('unlabeled', config.data['n_views'])
-    train_dataset = dataset.get_dataset('train', config.data['n_views'])
-    train_dataset = ConcatDataset([unlabeled_dataset, train_dataset])
-
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=config.batch_size, shuffle=True,
-        num_workers=config.num_workers, pin_memory=True, drop_last=True)
-
-    model = ResNetSimCLR(base_model=config.arch, out_dim=config.out_dim)
-
-    optimizer = torch.optim.Adam(model.parameters(), config.learning_rate, weight_decay=config.weight_decay)
-
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader),
-                                                         eta_min=0, last_epoch=-1)
-
-    # For logging purposes
-    config.device = device
-    config.n_views = config.data['n_views']
-
-    simclr = SimCLR(model=model, optimizer=optimizer, scheduler=scheduler, args=config)
-    simclr.train(train_loader)
-
+    torch.save(model.state_dict(), "models/snapshot/resnet_simclr_final.pth")
 
 if __name__ == "__main__":
-    main()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    main(device)
