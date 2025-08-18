@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from models.modules.conv_block import ConvBlock
 
 """
 Input: 64×64×3
@@ -15,6 +14,19 @@ Input: 64×64×3
 
 Output: 16×16×192 (또는 8×8×192)
 """
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
 class InceptionBlockA(nn.Module):
     def __init__(self, stem_out_channels):
         super(InceptionBlockA, self).__init__()
@@ -122,6 +134,11 @@ class CNNEncoder(nn.Module):
 
 
 if __name__ == "__main__":
-    model = CNNEncoder()
-
-    print(model.fc.in_features)
+    # Example usage
+    model = CNNEncoder(in_channels=3, out_channels=256)
+    #print model total parameters
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f'Total trainable parameters: {total_params}')
+    #print runnable parameters
+    runnable_params = sum(p.numel() for p in model.parameters())
+    print(f'Total parameters (trainable + non-trainable): {runnable_params}')
