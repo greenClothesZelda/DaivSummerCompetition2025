@@ -34,6 +34,13 @@ valid_dataset = ImageDataset(root=path, force_download=False, valid=True, transf
 test_dataset = ImageDataset(root=path, force_download=False, train=False, transform=resizer)
 unlabeled_dataset = ImageDataset(root=path, force_download=False, unlabeled=True, transform=resizer)
 
+def get_test_dataset():
+    return test_dataset
+def get_train_dataset():
+    return train_dataset
+def get_valid_dataset():
+    return valid_dataset
+
 def get_train_loader(batch_size=32, num_workers=4):
     return DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 

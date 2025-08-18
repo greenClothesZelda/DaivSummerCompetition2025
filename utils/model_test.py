@@ -45,7 +45,14 @@ def main():
 
     # 모델 로드
     model = CNNAutoencoder().to(device)
-    checkpoint = torch.load('../models/snapshot/cnn_AE_final.pth', map_location=device)
+    total_params = sum(p.numel() for p in model.parameters())
+
+    # 학습 가능한 파라미터 수
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    print(f"전체 파라미터 수: {total_params:,}")
+    print(f"학습 가능한 파라미터 수: {trainable_params:,}")
+    checkpoint = torch.load('../models/snapshot/cnn_AE_epoch_20.pth', map_location=device)
     model.load_state_dict(checkpoint)
     model.to(device)
 

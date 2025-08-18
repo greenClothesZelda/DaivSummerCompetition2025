@@ -1,48 +1,82 @@
 import torch
 from torch import nn
-from models.modules.conv_block import ConvBlock
-from models.modules.inception_resnet_v2.inception_modules import inception_B, inception_C
-from .reduction_B import ReductionB  # 상대경로로 수정
 
 class CNNDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=256, out_channels=3):
         super().__init__()
-        # latent vector를 8x8x336 feature map으로 변환
-        self.fc = nn.Linear(336, 8 * 8 * 336)
-        self.inceptionC = nn.ModuleList([inception_C.InceptionC(in_channels=336, scale=0.1) for _ in range(10)])
-        # ReductionB의 역방향: 채널 수를 336 -> 192로 줄이고, spatial size를 8x8 -> 16x16로 업샘플링
-        self.up1 = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode='nearest'),  # 8x8 -> 16x16
-            ConvBlock(in_channels=336, out_channels=192, kernel_size=3, stride=1, padding=1)
+        
+        # 4x4 크기의 특징 맵에서 시작하도록 디자인
+        self.decoder = nn.Sequential(
+            # 입력 특징을 4x4 공간 해상도로 변환
+            nn.Linear(in_channels, 4 * 4 * 256),
+            nn.ReLU(inplace=True),
+            
+            # 특징 맵 재구성 (reshape)
+            nn.Unflatten(1, (256, 4, 4)),
+            
+            # 4x4 -> 8x8
+            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            
+            # 8x8 -> 16x16
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            
+            # 16x16 -> 32x32
+            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            
+            # 32x32 -> 64x64
+            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            
+            # 최종 출력층 (64x64x3)
+            nn.Conv2d(16, out_channels, kernel_size=3, padding=1),
+            nn.Tanh()  # 출력값을 [-1, 1] 범위로 제한 (선택적)
         )
-        self.inceptionB = nn.ModuleList([inception_B.InceptionB(in_channels=192, scale=0.1) for _ in range(5)])
-        # stem의 역방향: 16x16x192 -> 64x64x3
-        self.stem_decoder = nn.Sequential(
-            ConvBlock(in_channels=192, out_channels=80, kernel_size=3, stride=1, padding=1),
-            nn.Upsample(scale_factor=2, mode='nearest'),  # 16x16 -> 32x32
-            ConvBlock(in_channels=80, out_channels=64, kernel_size=3, stride=1, padding=1),
-            ConvBlock(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1),
-            nn.Upsample(scale_factor=2, mode='nearest'),  # 32x32 -> 64x64
-            ConvBlock(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1),
-            ConvBlock(in_channels=32, out_channels=3, kernel_size=3, stride=1, padding=1),
-            nn.Tanh()  # 이미지 출력 범위 [-1, 1]로 맞춤
-        )
-
+        
     def forward(self, x):
-        # latent vector -> 8x8x336
-        x = self.fc(x)
-        x = x.view(x.size(0), 336, 8, 8)
-        for inception in self.inceptionC:
-            x = inception(x)
-        x = self.up1(x)
-        for inception in self.inceptionB:
-            x = inception(x)
-        x = self.stem_decoder(x)
+        # 입력이 벡터가 아니라 특징 맵인 경우를 위한 분기 처리
+        if len(x.shape) > 2:
+            return self.decoder_from_features(x)
+        return self.decoder(x)
+    
+    def decoder_from_features(self, x):
+        # 이미 특징 맵 형태인 경우, Linear와 Unflatten 단계를 건너뛰고 적절한 레이어부터 시작
+        # 입력 크기에 따라 적절한 레이어 선택
+        shape = x.shape
+        
+        if shape[2] == 4 and shape[3] == 4:
+            # 4x4 특징 맵인 경우
+            for i, layer in enumerate(self.decoder):
+                if i >= 3:  # Linear와 ReLU, Unflatten 건너뛰기
+                    x = layer(x)
+        elif shape[2] == 8 and shape[3] == 8:
+            # 8x8 특징 맵인 경우
+            for i, layer in enumerate(self.decoder):
+                if i >= 7:  # 첫 번째 ConvTranspose2d 이후부터 시작
+                    x = layer(x)
+        elif shape[2] == 16 and shape[3] == 16:
+            # 16x16 특징 맵인 경우
+            for i, layer in enumerate(self.decoder):
+                if i >= 11:  # 두 번째 ConvTranspose2d 이후부터 시작
+                    x = layer(x)
+        elif shape[2] == 32 and shape[3] == 32:
+            # 32x32 특징 맵인 경우
+            for i, layer in enumerate(self.decoder):
+                if i >= 15:  # 세 번째 ConvTranspose2d 이후부터 시작
+                    x = layer(x)
+                    
         return x
 
 if __name__ == "__main__":
     decoder = CNNDecoder()
-    z = torch.randn(1, 128)  # latent vector
-    output = decoder(z)
-    print(output.shape)  # torch.Size([1, 3, 64, 64])
 
+    # 테스트용 입력 벡터
+    x = torch.randn(1, 128)  # Batch size of 1, latent vector of size 128
+    reconstructed_image = decoder(x)
+    print(reconstructed_image.shape)  # Should print the shape of the reconstructed image (1, 3, 64, 64)

@@ -1,7 +1,6 @@
-from data.loader import get_test_loader
+from data.loader import get_test_loader, get_valid_loader
 import matplotlib.pyplot as plt
 import numpy as np
-import random
 
 def check_test_loader():
     test_loader = get_test_loader()
@@ -9,7 +8,7 @@ def check_test_loader():
     print(f"x shape: {x.shape}, y shape: {y.shape}")
 
 def check_class_images():
-    test_loader = get_test_loader()
+    test_loader = get_valid_loader()
     
     # 각 클래스별로 이미지 5개를 수집할 딕셔너리 준비
     class_images = {}

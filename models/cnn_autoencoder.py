@@ -4,12 +4,15 @@ import torch
 from .modules.cnn_autoencoder.cnn_encoder import CNNEncoder
 from .modules.cnn_autoencoder.cnn_decoder import CNNDecoder
 
+from .modules.cnn_autoencoder.cnn_decoder_gpt import Decoder
+from .modules.cnn_autoencoder.cnn_encoder_gpt import Encoder
+
 
 class CNNAutoencoder(nn.Module):
-    def __init__(self, latent_dim=128):
+    def __init__(self, latent_dim=256):
         super().__init__()
-        self.encoder = CNNEncoder()
-        self.decoder = CNNDecoder()
+        self.encoder = CNNEncoder(out_channels=latent_dim)
+        self.decoder = CNNDecoder(in_channels=latent_dim)
 
     def forward(self, x):
         # Encoder: Input image -> Latent vector
@@ -23,6 +26,7 @@ class CNNAutoencoder(nn.Module):
 
 if __name__ == "__main__":
     autoencoder = CNNAutoencoder()
+
     x = torch.randn(1, 3, 64, 64)  # Batch size of 1, 3 channels, 64x64 image
     reconstructed_image, latent_vector = autoencoder(x)
     print(reconstructed_image.shape)  # Should print the shape of the reconstructed image

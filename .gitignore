@@ -24,4 +24,4 @@ models/snapshot/*
 
 #vector database
 classification/vectors
-classification/submissions.csv
+classification/test.csv
