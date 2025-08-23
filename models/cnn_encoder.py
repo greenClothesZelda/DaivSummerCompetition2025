@@ -101,14 +101,7 @@ class CNNEncoder(nn.Module):
 
         self.inceptionC = nn.ModuleList([InceptionBlockC(bridge2_out) for _ in range(9)])  # Two Inception blocks
 
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)  # Final max pooling layer
-
-        self.fc = nn.Sequential(
-            nn.Linear(bridge2_out * 3 * 3, out_channels*2),
-            nn.ReLU(inplace=True),
-            nn.Linear(out_channels*2, out_channels)
-        )
-
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.dropout = nn.Dropout(p=0.2)
 
     def forward(self, x):
@@ -125,9 +118,8 @@ class CNNEncoder(nn.Module):
 
         for inception_block in self.inceptionC:
             x = inception_block(x)
-        x = self.maxpool(x)
-        x = torch.flatten(x, start_dim=1)
-        x = self.fc(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
         x = self.dropout(x)
         return x
 
@@ -142,3 +134,7 @@ if __name__ == "__main__":
     #print runnable parameters
     runnable_params = sum(p.numel() for p in model.parameters())
     print(f'Total parameters (trainable + non-trainable): {runnable_params}')
+
+    x = torch.randn(1, 3, 64, 64)  # Example input tensor with batch size 1 and image size 64x64
+    output = model(x)
+    print(output.shape)  # Should print torch.Size([1, out_channels])

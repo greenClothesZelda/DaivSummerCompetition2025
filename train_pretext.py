@@ -16,7 +16,7 @@ def train_pretext(model, loader, optimizer, scheduler, device, base_epoch, total
             torch.save(model.state_dict(), f"models/snapshot/resnet_simclr_epoch_{epoch + 1}.pth")
 
 
-def train_one_epoch(model, loader, optimizer, scheduler, device, epoch=None, total_epochs=None, temperature=0.07):
+def train_one_epoch(model, loader, optimizer, scheduler, device, epoch=None, total_epochs=None, temperature=0.5):
     total_loss = 0.0
     desc = f"Epoch {epoch}/{total_epochs}" if epoch and total_epochs else "Training"
     criterion = nn.CrossEntropyLoss()
